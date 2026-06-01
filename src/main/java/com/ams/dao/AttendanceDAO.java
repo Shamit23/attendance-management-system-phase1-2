@@ -423,6 +423,118 @@ public class AttendanceDAO {
     }
 
     /**
+     * Retrieves individual student details for a specific attendance session.
+     */
+    public List<AttendanceDetail> getAttendanceDetailsByMasterId(int attendanceId) {
+        List<AttendanceDetail> list = new ArrayList<>();
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+
+        try {
+            conn = DBConnection.getInstance().getConnection();
+            String sql = "SELECT * FROM attendance_details WHERE attendance_id = ?";
+            ps = conn.prepareStatement(sql);
+            ps.setInt(1, attendanceId);
+            rs = ps.executeQuery();
+
+            while (rs.next()) {
+                list.add(extractDetailFromResultSet(rs));
+            }
+        } catch (SQLException e) {
+            System.err.println("[AMS AttendanceDAO] Error in getAttendanceDetailsByMasterId: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            DBConnection.closeResultSet(rs);
+            DBConnection.closeStatement(ps);
+            DBConnection.closeConnection(conn);
+        }
+        return list;
+    }
+
+    /**
+     * Updates student attendance details in a single transaction.
+     */
+    public boolean updateAttendance(int attendanceId, List<AttendanceDetail> details) {
+        Connection conn = null;
+        PreparedStatement psDetail = null;
+        boolean success = false;
+
+        try {
+            conn = DBConnection.getInstance().getConnection();
+            conn.setAutoCommit(false); // Begin transaction
+
+            String sqlDetail = "UPDATE attendance_details SET status = ?, remarks = ? WHERE attendance_id = ? AND student_id = ?";
+            psDetail = conn.prepareStatement(sqlDetail);
+
+            for (AttendanceDetail detail : details) {
+                psDetail.setString(1, mapModelStatusToDB(detail.getStatus()));
+                psDetail.setString(2, detail.getRemarks());
+                psDetail.setInt(3, attendanceId);
+                psDetail.setInt(4, detail.getStudentId());
+                psDetail.addBatch();
+            }
+
+            psDetail.executeBatch();
+            conn.commit(); // Commit
+            success = true;
+        } catch (SQLException e) {
+            System.err.println("[AMS AttendanceDAO] Transaction error in updateAttendance: " + e.getMessage());
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
+            }
+            e.printStackTrace();
+        } finally {
+            DBConnection.closeStatement(psDetail);
+            DBConnection.closeConnection(conn);
+        }
+        return success;
+    }
+
+    /**
+     * Calculates the teacher's average attendance across all recorded sessions.
+     */
+    public double getTeacherAverageAttendance(int teacherId) {
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        double percentage = 100.0;
+
+        try {
+            conn = DBConnection.getInstance().getConnection();
+            String sql = "SELECT " +
+                         "  SUM(CASE WHEN ad.status IN ('PRESENT', 'LATE', 'EXCUSED') THEN 1 ELSE 0 END) as attended, " +
+                         "  COUNT(ad.detail_id) as total " +
+                         "FROM attendance_details ad " +
+                         "JOIN attendance a ON ad.attendance_id = a.attendance_id " +
+                         "WHERE a.teacher_id = ?";
+            ps = conn.prepareStatement(sql);
+            ps.setInt(1, teacherId);
+            rs = ps.executeQuery();
+
+            if (rs.next()) {
+                int total = rs.getInt("total");
+                int attended = rs.getInt("attended");
+                if (total > 0) {
+                    percentage = (double) attended / total * 100.0;
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("[AMS AttendanceDAO] Error in getTeacherAverageAttendance: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            DBConnection.closeResultSet(rs);
+            DBConnection.closeStatement(ps);
+            DBConnection.closeConnection(conn);
+        }
+        return percentage;
+    }
+
+    /**
      * Helper to translate a ResultSet row into an Attendance JavaBean.
      */
     private Attendance extractAttendanceFromResultSet(ResultSet rs) throws SQLException {
