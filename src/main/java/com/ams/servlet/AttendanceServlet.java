@@ -5,6 +5,8 @@ import com.ams.dao.SubjectDAO;
 import com.ams.model.Attendance;
 import com.ams.model.AttendanceDetail;
 import com.ams.model.Subject;
+import com.ams.util.ErrorHandler;
+import com.ams.util.Result;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -117,12 +119,22 @@ public class AttendanceServlet extends HttpServlet {
                 boolean isEdit = "true".equalsIgnoreCase(isEditStr);
                 Attendance existing = attendanceDAO.getAttendanceByDate(subjectId, date);
 
-                boolean operationSuccess;
+                Result<Boolean> result;
                 if (isEdit && existing != null) {
-                    operationSuccess = attendanceDAO.updateAttendance(existing.getId(), details);
+                    final Attendance finalExisting = existing;
+                    result = ErrorHandler.executeSafely(
+                        () -> attendanceDAO.updateAttendance(finalExisting.getId(), details),
+                        "Attendance updated successfully.",
+                        "Failed to update attendance session."
+                    );
                 } else if (existing != null) {
                     // Implicit update for duplicate inserts to prevent duplicate errors
-                    operationSuccess = attendanceDAO.updateAttendance(existing.getId(), details);
+                    final Attendance finalExisting = existing;
+                    result = ErrorHandler.executeSafely(
+                        () -> attendanceDAO.updateAttendance(finalExisting.getId(), details),
+                        "Attendance updated successfully.",
+                        "Failed to update attendance session."
+                    );
                 } else {
                     Attendance newAttendance = new Attendance();
                     newAttendance.setClassId(classId);
@@ -130,10 +142,14 @@ public class AttendanceServlet extends HttpServlet {
                     newAttendance.setTeacherId(teacherId);
                     newAttendance.setAttendanceDate(date);
                     newAttendance.setSlot(slot);
-                    operationSuccess = attendanceDAO.markAttendance(newAttendance, details);
+                    result = ErrorHandler.executeSafely(
+                        () -> attendanceDAO.markAttendance(newAttendance, details),
+                        "Attendance marked successfully.",
+                        "Failed to mark attendance session."
+                    );
                 }
 
-                if (operationSuccess) {
+                if (result.isSuccess() && result.getData()) {
                     response.sendRedirect(request.getContextPath() + "/teacher/mark-attendance.jsp?status=success&subjectId=" + subjectId + "&date=" + date);
                 } else {
                     response.sendRedirect(request.getContextPath() + "/teacher/mark-attendance.jsp?status=failed&subjectId=" + subjectId + "&date=" + date);

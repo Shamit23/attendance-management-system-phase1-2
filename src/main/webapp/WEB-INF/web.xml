@@ -90,6 +90,11 @@
         <url-pattern>/student/*</url-pattern>
     </filter-mapping>
 
+    <!-- Session Timeout Configuration (30 minutes) -->
+    <session-config>
+        <session-timeout>30</session-timeout>
+    </session-config>
+
     <!-- Configure the welcome file landing page -->
     <welcome-file-list>
         <welcome-file>login.jsp</welcome-file>

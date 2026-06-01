@@ -2,6 +2,8 @@ package com.ams.servlet;
 
 import com.ams.dao.ClassDAO;
 import com.ams.model.ClassSection;
+import com.ams.util.ErrorHandler;
+import com.ams.util.Result;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -85,7 +87,16 @@ public class ClassServlet extends HttpServlet {
             section == null || section.trim().isEmpty() ||
             academicYear == null || academicYear.trim().isEmpty()) {
             
+            request.setAttribute("errorMsg", "Required fields (Class Name, Semester/Section, and Academic Year) cannot be empty.");
             request.setAttribute("errorMessage", "Required fields (Class Name, Semester/Section, and Academic Year) cannot be empty.");
+            handleList(request, response);
+            return;
+        }
+
+        // Class name uniqueness check
+        if (classDAO.isClassNameExists(name.trim())) {
+            request.setAttribute("errorMsg", "Class name is already registered.");
+            request.setAttribute("errorMessage", "Class name is already registered.");
             handleList(request, response);
             return;
         }
@@ -95,11 +106,17 @@ public class ClassServlet extends HttpServlet {
         classSection.setSection(section.trim());
         classSection.setAcademicYear(academicYear.trim());
 
-        boolean success = classDAO.addClass(classSection);
-        if (success) {
+        Result<Boolean> result = ErrorHandler.executeSafely(
+            () -> classDAO.addClass(classSection),
+            "Class cohort registered successfully.",
+            "Failed to register class cohort."
+        );
+
+        if (result.isSuccess() && result.getData()) {
             response.sendRedirect(request.getContextPath() + "/admin/classes?msg=added");
         } else {
-            request.setAttribute("errorMessage", "Error adding class cohort. Class Name may already exist.");
+            request.setAttribute("errorMsg", result.getMessage());
+            request.setAttribute("errorMessage", result.getMessage());
             handleList(request, response);
         }
     }
@@ -115,7 +132,8 @@ public class ClassServlet extends HttpServlet {
             section == null || section.trim().isEmpty() ||
             academicYear == null || academicYear.trim().isEmpty()) {
             
-            request.setAttribute("errorMessage", "All class fields are required for update.");
+            request.setAttribute("errorMsg", "All class fields are required for updates.");
+            request.setAttribute("errorMessage", "All class fields are required for updates.");
             handleList(request, response);
             return;
         }
@@ -123,21 +141,36 @@ public class ClassServlet extends HttpServlet {
         try {
             int id = Integer.parseInt(idStr);
 
+            // Class name uniqueness check
+            if (classDAO.isClassNameExistsForOther(name.trim(), id)) {
+                request.setAttribute("errorMsg", "Class name is already registered by another class cohort.");
+                request.setAttribute("errorMessage", "Class name is already registered by another class cohort.");
+                handleList(request, response);
+                return;
+            }
+
             ClassSection classSection = new ClassSection();
             classSection.setId(id);
             classSection.setName(name.trim());
             classSection.setSection(section.trim());
             classSection.setAcademicYear(academicYear.trim());
 
-            boolean success = classDAO.updateClass(classSection);
-            if (success) {
+            Result<Boolean> result = ErrorHandler.executeSafely(
+                () -> classDAO.updateClass(classSection),
+                "Class cohort updated successfully.",
+                "Failed to update class cohort."
+            );
+
+            if (result.isSuccess() && result.getData()) {
                 response.sendRedirect(request.getContextPath() + "/admin/classes?msg=updated");
             } else {
-                request.setAttribute("errorMessage", "Error updating class cohort. Class Name may clash with another section.");
+                request.setAttribute("errorMsg", result.getMessage());
+                request.setAttribute("errorMessage", result.getMessage());
                 handleList(request, response);
             }
         } catch (NumberFormatException e) {
-            request.setAttribute("errorMessage", "Invalid numeric identifier passed.");
+            request.setAttribute("errorMsg", "Class ID identifier must contain a valid integer.");
+            request.setAttribute("errorMessage", "Class ID identifier must contain a valid integer.");
             handleList(request, response);
         }
     }
@@ -145,18 +178,39 @@ public class ClassServlet extends HttpServlet {
     private void handleDelete(HttpServletRequest request, HttpServletResponse response) 
             throws ServletException, IOException {
         String idStr = request.getParameter("id");
-        if (idStr != null) {
-            try {
-                int id = Integer.parseInt(idStr);
-                boolean success = classDAO.deleteClass(id);
-                if (success) {
-                    response.sendRedirect(request.getContextPath() + "/admin/classes?msg=deleted");
-                    return;
-                }
-            } catch (NumberFormatException e) {
-                e.printStackTrace();
-            }
+        if (idStr == null || idStr.trim().isEmpty()) {
+            response.sendRedirect(request.getContextPath() + "/admin/classes?msg=error");
+            return;
         }
-        response.sendRedirect(request.getContextPath() + "/admin/classes?msg=error");
+
+        try {
+            int id = Integer.parseInt(idStr);
+
+            // Safety restriction: cannot delete a class cohort that has enrolled students or registered subjects
+            if (classDAO.hasDependentStudentsOrSubjects(id)) {
+                request.setAttribute("errorMsg", "Cannot delete class cohort that contains enrolled students or registered subjects.");
+                request.setAttribute("errorMessage", "Cannot delete class cohort that contains enrolled students or registered subjects.");
+                handleList(request, response);
+                return;
+            }
+
+            Result<Boolean> result = ErrorHandler.executeSafely(
+                () -> classDAO.deleteClass(id),
+                "Class cohort deleted successfully.",
+                "Failed to delete class cohort."
+            );
+
+            if (result.isSuccess() && result.getData()) {
+                response.sendRedirect(request.getContextPath() + "/admin/classes?msg=deleted");
+            } else {
+                request.setAttribute("errorMsg", result.getMessage());
+                request.setAttribute("errorMessage", result.getMessage());
+                handleList(request, response);
+            }
+        } catch (NumberFormatException e) {
+            request.setAttribute("errorMsg", "Invalid class ID identifier.");
+            request.setAttribute("errorMessage", "Invalid class ID identifier.");
+            handleList(request, response);
+        }
     }
 }

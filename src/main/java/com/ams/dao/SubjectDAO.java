@@ -270,6 +270,88 @@ public class SubjectDAO {
     }
 
     /**
+     * Checks if a subject code already exists.
+     */
+    public boolean isCodeExists(String code) {
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        boolean exists = false;
+        try {
+            conn = DBConnection.getInstance().getConnection();
+            String sql = "SELECT COUNT(*) FROM subjects WHERE subject_code = ?";
+            ps = conn.prepareStatement(sql);
+            ps.setString(1, code);
+            rs = ps.executeQuery();
+            if (rs.next()) {
+                exists = rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            DBConnection.closeResultSet(rs);
+            DBConnection.closeStatement(ps);
+            DBConnection.closeConnection(conn);
+        }
+        return exists;
+    }
+
+    /**
+     * Checks if a subject code exists for another subject.
+     */
+    public boolean isCodeExistsForOther(String code, int subjectId) {
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        boolean exists = false;
+        try {
+            conn = DBConnection.getInstance().getConnection();
+            String sql = "SELECT COUNT(*) FROM subjects WHERE subject_code = ? AND subject_id != ?";
+            ps = conn.prepareStatement(sql);
+            ps.setString(1, code);
+            ps.setInt(2, subjectId);
+            rs = ps.executeQuery();
+            if (rs.next()) {
+                exists = rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            DBConnection.closeResultSet(rs);
+            DBConnection.closeStatement(ps);
+            DBConnection.closeConnection(conn);
+        }
+        return exists;
+    }
+
+    /**
+     * Checks if a subject has recorded any attendance.
+     */
+    public boolean hasAttendance(int subjectId) {
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        boolean exists = false;
+        try {
+            conn = DBConnection.getInstance().getConnection();
+            String sql = "SELECT COUNT(*) FROM attendance WHERE subject_id = ?";
+            ps = conn.prepareStatement(sql);
+            ps.setInt(1, subjectId);
+            rs = ps.executeQuery();
+            if (rs.next()) {
+                exists = rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            DBConnection.closeResultSet(rs);
+            DBConnection.closeStatement(ps);
+            DBConnection.closeConnection(conn);
+        }
+        return exists;
+    }
+
+    /**
      * Standard helper method to translate a ResultSet row into a Subject JavaBean.
      */
     private Subject extractSubjectFromResultSet(ResultSet rs) throws SQLException {

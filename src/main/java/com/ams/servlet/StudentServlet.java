@@ -4,6 +4,8 @@ import com.ams.dao.ClassDAO;
 import com.ams.dao.StudentDAO;
 import com.ams.model.ClassSection;
 import com.ams.model.Student;
+import com.ams.util.ErrorHandler;
+import com.ams.util.Result;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -93,7 +95,7 @@ public class StudentServlet extends HttpServlet {
         String phone = request.getParameter("phone");
         String dobStr = request.getParameter("dateOfBirth");
 
-        // 1. Server-side validations
+        // 1. Server-side validation
         if (firstName == null || firstName.trim().isEmpty() ||
             lastName == null || lastName.trim().isEmpty() ||
             rollNo == null || rollNo.trim().isEmpty() ||
@@ -101,6 +103,7 @@ public class StudentServlet extends HttpServlet {
             email == null || email.trim().isEmpty() ||
             dobStr == null || dobStr.trim().isEmpty()) {
             
+            request.setAttribute("errorMsg", "Required fields (First Name, Last Name, Roll No, Class, Email, and Date of Birth) cannot be empty.");
             request.setAttribute("errorMessage", "Required fields (First Name, Last Name, Roll No, Class, Email, and Date of Birth) cannot be empty.");
             handleList(request, response);
             return;
@@ -109,6 +112,20 @@ public class StudentServlet extends HttpServlet {
         try {
             int classId = Integer.parseInt(classIdStr);
             Date dob = Date.valueOf(dobStr);
+
+            // Duplicate Detection Check
+            if (studentDAO.isRollNumberExists(rollNo.trim().toUpperCase())) {
+                request.setAttribute("errorMsg", "Roll number is already in use by another student.");
+                request.setAttribute("errorMessage", "Roll number is already in use by another student.");
+                handleList(request, response);
+                return;
+            }
+            if (studentDAO.isEmailExists(email.trim())) {
+                request.setAttribute("errorMsg", "Email address is already in use.");
+                request.setAttribute("errorMessage", "Email address is already in use.");
+                handleList(request, response);
+                return;
+            }
 
             Student student = new Student();
             student.setFirstName(firstName.trim());
@@ -119,15 +136,26 @@ public class StudentServlet extends HttpServlet {
             student.setPhone(phone != null ? phone.trim() : null);
             student.setDateOfBirth(dob);
 
-            boolean success = studentDAO.addStudent(student);
-            if (success) {
+            Result<Boolean> result = ErrorHandler.executeSafely(
+                () -> studentDAO.addStudent(student),
+                "Student account registered successfully.",
+                "Failed to register student profile."
+            );
+
+            if (result.isSuccess() && result.getData()) {
                 response.sendRedirect(request.getContextPath() + "/admin/students?msg=added");
             } else {
-                request.setAttribute("errorMessage", "Error saving student profile. Roll number or Email might already exist.");
+                request.setAttribute("errorMsg", result.getMessage());
+                request.setAttribute("errorMessage", result.getMessage());
                 handleList(request, response);
             }
+        } catch (NumberFormatException e) {
+            request.setAttribute("errorMsg", "Class ID must be a numeric integer.");
+            request.setAttribute("errorMessage", "Class ID must be a numeric integer.");
+            handleList(request, response);
         } catch (IllegalArgumentException e) {
-            request.setAttribute("errorMessage", "Invalid Date of Birth format. Please select a valid date.");
+            request.setAttribute("errorMsg", "Invalid Date of Birth selection.");
+            request.setAttribute("errorMessage", "Invalid Date of Birth selection.");
             handleList(request, response);
         }
     }
@@ -144,7 +172,7 @@ public class StudentServlet extends HttpServlet {
         String phone = request.getParameter("phone");
         String dobStr = request.getParameter("dateOfBirth");
 
-        // 1. Server-side validations
+        // 1. Server-side validation
         if (idStr == null || userIdStr == null ||
             firstName == null || firstName.trim().isEmpty() ||
             lastName == null || lastName.trim().isEmpty() ||
@@ -153,7 +181,8 @@ public class StudentServlet extends HttpServlet {
             email == null || email.trim().isEmpty() ||
             dobStr == null || dobStr.trim().isEmpty()) {
             
-            request.setAttribute("errorMessage", "All profile fields are required for update.");
+            request.setAttribute("errorMsg", "All profile fields are required for updates.");
+            request.setAttribute("errorMessage", "All profile fields are required for updates.");
             handleList(request, response);
             return;
         }
@@ -163,6 +192,20 @@ public class StudentServlet extends HttpServlet {
             int userId = Integer.parseInt(userIdStr);
             int classId = Integer.parseInt(classIdStr);
             Date dob = Date.valueOf(dobStr);
+
+            // Duplicate Detection Check
+            if (studentDAO.isRollNumberExistsForOther(rollNo.trim().toUpperCase(), id)) {
+                request.setAttribute("errorMsg", "Roll number is already in use by another student.");
+                request.setAttribute("errorMessage", "Roll number is already in use by another student.");
+                handleList(request, response);
+                return;
+            }
+            if (studentDAO.isEmailExistsForOther(email.trim(), userId)) {
+                request.setAttribute("errorMsg", "Email address is already in use.");
+                request.setAttribute("errorMessage", "Email address is already in use.");
+                handleList(request, response);
+                return;
+            }
 
             Student student = new Student();
             student.setId(id);
@@ -175,18 +218,26 @@ public class StudentServlet extends HttpServlet {
             student.setPhone(phone != null ? phone.trim() : null);
             student.setDateOfBirth(dob);
 
-            boolean success = studentDAO.updateStudent(student);
-            if (success) {
+            Result<Boolean> result = ErrorHandler.executeSafely(
+                () -> studentDAO.updateStudent(student),
+                "Student account updated successfully.",
+                "Failed to update student profile."
+            );
+
+            if (result.isSuccess() && result.getData()) {
                 response.sendRedirect(request.getContextPath() + "/admin/students?msg=updated");
             } else {
-                request.setAttribute("errorMessage", "Error updating student. Email or Roll Number may collide with another profile.");
+                request.setAttribute("errorMsg", result.getMessage());
+                request.setAttribute("errorMessage", result.getMessage());
                 handleList(request, response);
             }
         } catch (NumberFormatException e) {
-            request.setAttribute("errorMessage", "Invalid numeric identifier properties passed.");
+            request.setAttribute("errorMsg", "Numeric identifier fields must contain valid integers.");
+            request.setAttribute("errorMessage", "Numeric identifier fields must contain valid integers.");
             handleList(request, response);
         } catch (IllegalArgumentException e) {
-            request.setAttribute("errorMessage", "Invalid Date of Birth format.");
+            request.setAttribute("errorMsg", "Invalid Date of Birth selection format.");
+            request.setAttribute("errorMessage", "Invalid Date of Birth selection format.");
             handleList(request, response);
         }
     }
@@ -194,18 +245,39 @@ public class StudentServlet extends HttpServlet {
     private void handleDelete(HttpServletRequest request, HttpServletResponse response) 
             throws ServletException, IOException {
         String idStr = request.getParameter("id");
-        if (idStr != null) {
-            try {
-                int id = Integer.parseInt(idStr);
-                boolean success = studentDAO.deleteStudent(id);
-                if (success) {
-                    response.sendRedirect(request.getContextPath() + "/admin/students?msg=deleted");
-                    return;
-                }
-            } catch (NumberFormatException e) {
-                e.printStackTrace();
-            }
+        if (idStr == null || idStr.trim().isEmpty()) {
+            response.sendRedirect(request.getContextPath() + "/admin/students?msg=error");
+            return;
         }
-        response.sendRedirect(request.getContextPath() + "/admin/students?msg=error");
+
+        try {
+            int id = Integer.parseInt(idStr);
+
+            // Business Rule: cannot delete a student who has attendance records (show friendly error)
+            if (studentDAO.hasAttendanceRecords(id)) {
+                request.setAttribute("errorMsg", "Cannot delete student who has recorded attendance logs.");
+                request.setAttribute("errorMessage", "Cannot delete student who has recorded attendance logs.");
+                handleList(request, response);
+                return;
+            }
+
+            Result<Boolean> result = ErrorHandler.executeSafely(
+                () -> studentDAO.deleteStudent(id),
+                "Student deleted successfully.",
+                "Failed to delete student."
+            );
+
+            if (result.isSuccess() && result.getData()) {
+                response.sendRedirect(request.getContextPath() + "/admin/students?msg=deleted");
+            } else {
+                request.setAttribute("errorMsg", result.getMessage());
+                request.setAttribute("errorMessage", result.getMessage());
+                handleList(request, response);
+            }
+        } catch (NumberFormatException e) {
+            request.setAttribute("errorMsg", "Invalid student ID identifier.");
+            request.setAttribute("errorMessage", "Invalid student ID identifier.");
+            handleList(request, response);
+        }
     }
 }

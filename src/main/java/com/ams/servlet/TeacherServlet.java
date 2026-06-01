@@ -2,6 +2,8 @@ package com.ams.servlet;
 
 import com.ams.dao.TeacherDAO;
 import com.ams.model.Teacher;
+import com.ams.util.ErrorHandler;
+import com.ams.util.Result;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -89,7 +91,16 @@ public class TeacherServlet extends HttpServlet {
             email == null || email.trim().isEmpty() ||
             specialization == null || specialization.trim().isEmpty()) {
             
+            request.setAttribute("errorMsg", "Required fields (First Name, Last Name, Email, and Specialization) cannot be empty.");
             request.setAttribute("errorMessage", "Required fields (First Name, Last Name, Email, and Specialization) cannot be empty.");
+            handleList(request, response);
+            return;
+        }
+
+        // Email uniqueness check
+        if (teacherDAO.isEmailExists(email.trim())) {
+            request.setAttribute("errorMsg", "Email address is already in use.");
+            request.setAttribute("errorMessage", "Email address is already in use.");
             handleList(request, response);
             return;
         }
@@ -101,11 +112,17 @@ public class TeacherServlet extends HttpServlet {
         teacher.setPhone(phone != null ? phone.trim() : null);
         teacher.setSpecialization(specialization.trim());
 
-        boolean success = teacherDAO.addTeacher(teacher);
-        if (success) {
+        Result<Boolean> result = ErrorHandler.executeSafely(
+            () -> teacherDAO.addTeacher(teacher),
+            "Teacher profile registered successfully.",
+            "Failed to register teacher profile."
+        );
+
+        if (result.isSuccess() && result.getData()) {
             response.sendRedirect(request.getContextPath() + "/admin/teachers?msg=added");
         } else {
-            request.setAttribute("errorMessage", "Error saving teacher profile. Email might already exist.");
+            request.setAttribute("errorMsg", result.getMessage());
+            request.setAttribute("errorMessage", result.getMessage());
             handleList(request, response);
         }
     }
@@ -126,7 +143,8 @@ public class TeacherServlet extends HttpServlet {
             email == null || email.trim().isEmpty() ||
             specialization == null || specialization.trim().isEmpty()) {
             
-            request.setAttribute("errorMessage", "All profile fields are required for update.");
+            request.setAttribute("errorMsg", "All profile fields are required for updates.");
+            request.setAttribute("errorMessage", "All profile fields are required for updates.");
             handleList(request, response);
             return;
         }
@@ -134,6 +152,14 @@ public class TeacherServlet extends HttpServlet {
         try {
             int id = Integer.parseInt(idStr);
             int userId = Integer.parseInt(userIdStr);
+
+            // Email uniqueness check
+            if (teacherDAO.isEmailExistsForOther(email.trim(), userId)) {
+                request.setAttribute("errorMsg", "Email address is already in use.");
+                request.setAttribute("errorMessage", "Email address is already in use.");
+                handleList(request, response);
+                return;
+            }
 
             Teacher teacher = new Teacher();
             teacher.setId(id);
@@ -144,15 +170,22 @@ public class TeacherServlet extends HttpServlet {
             teacher.setPhone(phone != null ? phone.trim() : null);
             teacher.setSpecialization(specialization.trim());
 
-            boolean success = teacherDAO.updateTeacher(teacher);
-            if (success) {
+            Result<Boolean> result = ErrorHandler.executeSafely(
+                () -> teacherDAO.updateTeacher(teacher),
+                "Teacher profile updated successfully.",
+                "Failed to update teacher profile."
+            );
+
+            if (result.isSuccess() && result.getData()) {
                 response.sendRedirect(request.getContextPath() + "/admin/teachers?msg=updated");
             } else {
-                request.setAttribute("errorMessage", "Error updating teacher profile. Email may collide with another profile.");
+                request.setAttribute("errorMsg", result.getMessage());
+                request.setAttribute("errorMessage", result.getMessage());
                 handleList(request, response);
             }
         } catch (NumberFormatException e) {
-            request.setAttribute("errorMessage", "Invalid numeric identifier properties passed.");
+            request.setAttribute("errorMsg", "Numeric identifier fields must contain valid integers.");
+            request.setAttribute("errorMessage", "Numeric identifier fields must contain valid integers.");
             handleList(request, response);
         }
     }
@@ -160,18 +193,39 @@ public class TeacherServlet extends HttpServlet {
     private void handleDelete(HttpServletRequest request, HttpServletResponse response) 
             throws ServletException, IOException {
         String idStr = request.getParameter("id");
-        if (idStr != null) {
-            try {
-                int id = Integer.parseInt(idStr);
-                boolean success = teacherDAO.deleteTeacher(id);
-                if (success) {
-                    response.sendRedirect(request.getContextPath() + "/admin/teachers?msg=deleted");
-                    return;
-                }
-            } catch (NumberFormatException e) {
-                e.printStackTrace();
-            }
+        if (idStr == null || idStr.trim().isEmpty()) {
+            response.sendRedirect(request.getContextPath() + "/admin/teachers?msg=error");
+            return;
         }
-        response.sendRedirect(request.getContextPath() + "/admin/teachers?msg=error");
+
+        try {
+            int id = Integer.parseInt(idStr);
+
+            // Safety check: Cannot delete teacher who has recorded sessions
+            if (teacherDAO.hasAttendanceSessions(id)) {
+                request.setAttribute("errorMsg", "Cannot delete teacher who has recorded attendance sessions.");
+                request.setAttribute("errorMessage", "Cannot delete teacher who has recorded attendance sessions.");
+                handleList(request, response);
+                return;
+            }
+
+            Result<Boolean> result = ErrorHandler.executeSafely(
+                () -> teacherDAO.deleteTeacher(id),
+                "Teacher deleted successfully.",
+                "Failed to delete teacher."
+            );
+
+            if (result.isSuccess() && result.getData()) {
+                response.sendRedirect(request.getContextPath() + "/admin/teachers?msg=deleted");
+            } else {
+                request.setAttribute("errorMsg", result.getMessage());
+                request.setAttribute("errorMessage", result.getMessage());
+                handleList(request, response);
+            }
+        } catch (NumberFormatException e) {
+            request.setAttribute("errorMsg", "Invalid teacher ID identifier.");
+            request.setAttribute("errorMessage", "Invalid teacher ID identifier.");
+            handleList(request, response);
+        }
     }
 }

@@ -6,6 +6,8 @@ import com.ams.dao.UserDAO;
 import com.ams.model.Student;
 import com.ams.model.Teacher;
 import com.ams.model.User;
+import com.ams.util.ErrorHandler;
+import com.ams.util.Result;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -74,8 +76,22 @@ public class LoginServlet extends HttpServlet {
         username = username.trim();
         role = role.trim().toUpperCase();
 
-        // 2. Perform authentication query
-        User user = userDAO.authenticate(username, password);
+        // 2. Perform authentication query wrapped with ErrorHandler
+        final String finalUsername = username;
+        final String finalPassword = password;
+        Result<User> result = ErrorHandler.executeSafely(
+            () -> userDAO.authenticate(finalUsername, finalPassword),
+            "Authentication check complete.",
+            "Authentication failed due to database server connection issue."
+        );
+
+        if (!result.isSuccess()) {
+            request.setAttribute("errorMessage", result.getMessage());
+            request.getRequestDispatcher("/login.jsp").forward(request, response);
+            return;
+        }
+
+        User user = result.getData();
 
         if (user != null) {
             // Verify role matching

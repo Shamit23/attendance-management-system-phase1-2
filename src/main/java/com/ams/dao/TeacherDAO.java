@@ -285,6 +285,88 @@ public class TeacherDAO {
     }
 
     /**
+     * Checks if an email already exists.
+     */
+    public boolean isEmailExists(String email) {
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        boolean exists = false;
+        try {
+            conn = DBConnection.getInstance().getConnection();
+            String sql = "SELECT COUNT(*) FROM users WHERE email = ?";
+            ps = conn.prepareStatement(sql);
+            ps.setString(1, email);
+            rs = ps.executeQuery();
+            if (rs.next()) {
+                exists = rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            DBConnection.closeResultSet(rs);
+            DBConnection.closeStatement(ps);
+            DBConnection.closeConnection(conn);
+        }
+        return exists;
+    }
+
+    /**
+     * Checks if an email already exists for another user.
+     */
+    public boolean isEmailExistsForOther(String email, int userId) {
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        boolean exists = false;
+        try {
+            conn = DBConnection.getInstance().getConnection();
+            String sql = "SELECT COUNT(*) FROM users WHERE email = ? AND user_id != ?";
+            ps = conn.prepareStatement(sql);
+            ps.setString(1, email);
+            ps.setInt(2, userId);
+            rs = ps.executeQuery();
+            if (rs.next()) {
+                exists = rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            DBConnection.closeResultSet(rs);
+            DBConnection.closeStatement(ps);
+            DBConnection.closeConnection(conn);
+        }
+        return exists;
+    }
+
+    /**
+     * Checks if a teacher has recorded any attendance sessions.
+     */
+    public boolean hasAttendanceSessions(int teacherId) {
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        boolean hasSessions = false;
+        try {
+            conn = DBConnection.getInstance().getConnection();
+            String sql = "SELECT COUNT(*) FROM attendance WHERE teacher_id = ?";
+            ps = conn.prepareStatement(sql);
+            ps.setInt(1, teacherId);
+            rs = ps.executeQuery();
+            if (rs.next()) {
+                hasSessions = rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            DBConnection.closeResultSet(rs);
+            DBConnection.closeStatement(ps);
+            DBConnection.closeConnection(conn);
+        }
+        return hasSessions;
+    }
+
+    /**
      * Standard helper method to translate a ResultSet row into a Teacher JavaBean.
      */
     private Teacher extractTeacherFromResultSet(ResultSet rs) throws SQLException {

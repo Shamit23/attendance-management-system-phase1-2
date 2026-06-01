@@ -379,6 +379,146 @@ public class StudentDAO {
     }
 
     /**
+     * Checks if a roll number already exists.
+     */
+    public boolean isRollNumberExists(String rollNo) {
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        boolean exists = false;
+        try {
+            conn = DBConnection.getInstance().getConnection();
+            String sql = "SELECT COUNT(*) FROM students WHERE roll_number = ?";
+            ps = conn.prepareStatement(sql);
+            ps.setString(1, rollNo);
+            rs = ps.executeQuery();
+            if (rs.next()) {
+                exists = rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            DBConnection.closeResultSet(rs);
+            DBConnection.closeStatement(ps);
+            DBConnection.closeConnection(conn);
+        }
+        return exists;
+    }
+
+    /**
+     * Checks if a roll number exists for another student.
+     */
+    public boolean isRollNumberExistsForOther(String rollNo, int studentId) {
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        boolean exists = false;
+        try {
+            conn = DBConnection.getInstance().getConnection();
+            String sql = "SELECT COUNT(*) FROM students WHERE roll_number = ? AND student_id != ?";
+            ps = conn.prepareStatement(sql);
+            ps.setString(1, rollNo);
+            ps.setInt(2, studentId);
+            rs = ps.executeQuery();
+            if (rs.next()) {
+                exists = rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            DBConnection.closeResultSet(rs);
+            DBConnection.closeStatement(ps);
+            DBConnection.closeConnection(conn);
+        }
+        return exists;
+    }
+
+    /**
+     * Checks if an email already exists in users.
+     */
+    public boolean isEmailExists(String email) {
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        boolean exists = false;
+        try {
+            conn = DBConnection.getInstance().getConnection();
+            String sql = "SELECT COUNT(*) FROM users WHERE email = ?";
+            ps = conn.prepareStatement(sql);
+            ps.setString(1, email);
+            rs = ps.executeQuery();
+            if (rs.next()) {
+                exists = rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            DBConnection.closeResultSet(rs);
+            DBConnection.closeStatement(ps);
+            DBConnection.closeConnection(conn);
+        }
+        return exists;
+    }
+
+    /**
+     * Checks if an email already exists for another user.
+     */
+    public boolean isEmailExistsForOther(String email, int userId) {
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        boolean exists = false;
+        try {
+            conn = DBConnection.getInstance().getConnection();
+            String sql = "SELECT COUNT(*) FROM users WHERE email = ? AND user_id != ?";
+            ps = conn.prepareStatement(sql);
+            ps.setString(1, email);
+            ps.setInt(2, userId);
+            rs = ps.executeQuery();
+            if (rs.next()) {
+                exists = rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            DBConnection.closeResultSet(rs);
+            DBConnection.closeStatement(ps);
+            DBConnection.closeConnection(conn);
+        }
+        return exists;
+    }
+
+
+    /**
+     * Checks if a student has any attendance records in attendance_details.
+     */
+    public boolean hasAttendanceRecords(int studentId) {
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        boolean hasRecords = false;
+
+        try {
+            conn = DBConnection.getInstance().getConnection();
+            String sql = "SELECT COUNT(*) FROM attendance_details WHERE student_id = ?";
+            ps = conn.prepareStatement(sql);
+            ps.setInt(1, studentId);
+            rs = ps.executeQuery();
+            if (rs.next()) {
+                hasRecords = rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            System.err.println("[AMS StudentDAO] Error in hasAttendanceRecords: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            DBConnection.closeResultSet(rs);
+            DBConnection.closeStatement(ps);
+            DBConnection.closeConnection(conn);
+        }
+        return hasRecords;
+    }
+
+    /**
      * Standard helper method to translate a ResultSet row into a Student JavaBean.
      */
     private Student extractStudentFromResultSet(ResultSet rs) throws SQLException {

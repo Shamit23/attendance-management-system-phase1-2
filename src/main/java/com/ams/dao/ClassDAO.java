@@ -186,6 +186,105 @@ public class ClassDAO {
     }
 
     /**
+     * Checks if a class name already exists.
+     */
+    public boolean isClassNameExists(String className) {
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        boolean exists = false;
+        try {
+            conn = DBConnection.getInstance().getConnection();
+            String sql = "SELECT COUNT(*) FROM classes WHERE class_name = ?";
+            ps = conn.prepareStatement(sql);
+            ps.setString(1, className);
+            rs = ps.executeQuery();
+            if (rs.next()) {
+                exists = rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            DBConnection.closeResultSet(rs);
+            DBConnection.closeStatement(ps);
+            DBConnection.closeConnection(conn);
+        }
+        return exists;
+    }
+
+    /**
+     * Checks if a class name exists for another class cohort.
+     */
+    public boolean isClassNameExistsForOther(String className, int classId) {
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        boolean exists = false;
+        try {
+            conn = DBConnection.getInstance().getConnection();
+            String sql = "SELECT COUNT(*) FROM classes WHERE class_name = ? AND class_id != ?";
+            ps = conn.prepareStatement(sql);
+            ps.setString(1, className);
+            ps.setInt(2, classId);
+            rs = ps.executeQuery();
+            if (rs.next()) {
+                exists = rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            DBConnection.closeResultSet(rs);
+            DBConnection.closeStatement(ps);
+            DBConnection.closeConnection(conn);
+        }
+        return exists;
+    }
+
+    /**
+     * Checks if a class has active students or registered subjects.
+     */
+    public boolean hasDependentStudentsOrSubjects(int classId) {
+        Connection conn = null;
+        PreparedStatement psStudents = null;
+        PreparedStatement psSubjects = null;
+        ResultSet rsStudents = null;
+        ResultSet rsSubjects = null;
+        boolean hasDependents = false;
+        try {
+            conn = DBConnection.getInstance().getConnection();
+            
+            // Check students
+            String sqlStudents = "SELECT COUNT(*) FROM students WHERE class_id = ?";
+            psStudents = conn.prepareStatement(sqlStudents);
+            psStudents.setInt(1, classId);
+            rsStudents = psStudents.executeQuery();
+            if (rsStudents.next() && rsStudents.getInt(1) > 0) {
+                hasDependents = true;
+            }
+            
+            // Check subjects
+            if (!hasDependents) {
+                String sqlSubjects = "SELECT COUNT(*) FROM subjects WHERE class_id = ?";
+                psSubjects = conn.prepareStatement(sqlSubjects);
+                psSubjects.setInt(1, classId);
+                rsSubjects = psSubjects.executeQuery();
+                if (rsSubjects.next() && rsSubjects.getInt(1) > 0) {
+                    hasDependents = true;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            DBConnection.closeResultSet(rsStudents);
+            DBConnection.closeResultSet(rsSubjects);
+            DBConnection.closeStatement(psStudents);
+            DBConnection.closeStatement(psSubjects);
+            DBConnection.closeConnection(conn);
+        }
+        return hasDependents;
+    }
+
+    /**
      * Standard helper method to translate a ResultSet row into a ClassSection JavaBean.
      */
     private ClassSection extractClassFromResultSet(ResultSet rs) throws SQLException {

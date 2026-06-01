@@ -6,6 +6,8 @@ import com.ams.dao.TeacherDAO;
 import com.ams.model.ClassSection;
 import com.ams.model.Subject;
 import com.ams.model.Teacher;
+import com.ams.util.ErrorHandler;
+import com.ams.util.Result;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -99,6 +101,7 @@ public class SubjectServlet extends HttpServlet {
             name == null || name.trim().isEmpty() ||
             classIdStr == null || classIdStr.trim().isEmpty()) {
             
+            request.setAttribute("errorMsg", "Required fields (Subject Code, Subject Name, and Class Section) cannot be empty.");
             request.setAttribute("errorMessage", "Required fields (Subject Code, Subject Name, and Class Section) cannot be empty.");
             handleList(request, response);
             return;
@@ -111,21 +114,36 @@ public class SubjectServlet extends HttpServlet {
                 teacherId = Integer.parseInt(teacherIdStr);
             }
 
+            // Subject Code uniqueness check
+            if (subjectDAO.isCodeExists(code.trim().toUpperCase())) {
+                request.setAttribute("errorMsg", "Subject code is already registered.");
+                request.setAttribute("errorMessage", "Subject code is already registered.");
+                handleList(request, response);
+                return;
+            }
+
             Subject subject = new Subject();
             subject.setCode(code.trim().toUpperCase());
             subject.setName(name.trim());
             subject.setTeacherId(teacherId);
             subject.setClassId(classId);
 
-            boolean success = subjectDAO.addSubject(subject);
-            if (success) {
+            Result<Boolean> result = ErrorHandler.executeSafely(
+                () -> subjectDAO.addSubject(subject),
+                "Subject catalog registered successfully.",
+                "Failed to register subject."
+            );
+
+            if (result.isSuccess() && result.getData()) {
                 response.sendRedirect(request.getContextPath() + "/admin/subjects?msg=added");
             } else {
-                request.setAttribute("errorMessage", "Error adding subject. Code may already exist.");
+                request.setAttribute("errorMsg", result.getMessage());
+                request.setAttribute("errorMessage", result.getMessage());
                 handleList(request, response);
             }
         } catch (NumberFormatException e) {
-            request.setAttribute("errorMessage", "Invalid numeric identifier selected.");
+            request.setAttribute("errorMsg", "Class and Teacher ID identifiers must contain valid integers.");
+            request.setAttribute("errorMessage", "Class and Teacher ID identifiers must contain valid integers.");
             handleList(request, response);
         }
     }
@@ -142,7 +160,8 @@ public class SubjectServlet extends HttpServlet {
             name == null || name.trim().isEmpty() ||
             classIdStr == null || classIdStr.trim().isEmpty()) {
             
-            request.setAttribute("errorMessage", "All subject fields are required for update.");
+            request.setAttribute("errorMsg", "All subject fields are required for updates.");
+            request.setAttribute("errorMessage", "All subject fields are required for updates.");
             handleList(request, response);
             return;
         }
@@ -155,6 +174,14 @@ public class SubjectServlet extends HttpServlet {
                 teacherId = Integer.parseInt(teacherIdStr);
             }
 
+            // Subject Code uniqueness check
+            if (subjectDAO.isCodeExistsForOther(code.trim().toUpperCase(), id)) {
+                request.setAttribute("errorMsg", "Subject code is already registered by another subject.");
+                request.setAttribute("errorMessage", "Subject code is already registered by another subject.");
+                handleList(request, response);
+                return;
+            }
+
             Subject subject = new Subject();
             subject.setId(id);
             subject.setCode(code.trim().toUpperCase());
@@ -162,15 +189,22 @@ public class SubjectServlet extends HttpServlet {
             subject.setTeacherId(teacherId);
             subject.setClassId(classId);
 
-            boolean success = subjectDAO.updateSubject(subject);
-            if (success) {
+            Result<Boolean> result = ErrorHandler.executeSafely(
+                () -> subjectDAO.updateSubject(subject),
+                "Subject catalog updated successfully.",
+                "Failed to update subject."
+            );
+
+            if (result.isSuccess() && result.getData()) {
                 response.sendRedirect(request.getContextPath() + "/admin/subjects?msg=updated");
             } else {
-                request.setAttribute("errorMessage", "Error updating subject. Code may clash with another subject.");
+                request.setAttribute("errorMsg", result.getMessage());
+                request.setAttribute("errorMessage", result.getMessage());
                 handleList(request, response);
             }
         } catch (NumberFormatException e) {
-            request.setAttribute("errorMessage", "Invalid numeric identifier passed.");
+            request.setAttribute("errorMsg", "Subject, Class, and Teacher ID identifiers must contain valid integers.");
+            request.setAttribute("errorMessage", "Subject, Class, and Teacher ID identifiers must contain valid integers.");
             handleList(request, response);
         }
     }
@@ -178,18 +212,39 @@ public class SubjectServlet extends HttpServlet {
     private void handleDelete(HttpServletRequest request, HttpServletResponse response) 
             throws ServletException, IOException {
         String idStr = request.getParameter("id");
-        if (idStr != null) {
-            try {
-                int id = Integer.parseInt(idStr);
-                boolean success = subjectDAO.deleteSubject(id);
-                if (success) {
-                    response.sendRedirect(request.getContextPath() + "/admin/subjects?msg=deleted");
-                    return;
-                }
-            } catch (NumberFormatException e) {
-                e.printStackTrace();
-            }
+        if (idStr == null || idStr.trim().isEmpty()) {
+            response.sendRedirect(request.getContextPath() + "/admin/subjects?msg=error");
+            return;
         }
-        response.sendRedirect(request.getContextPath() + "/admin/subjects?msg=error");
+
+        try {
+            int id = Integer.parseInt(idStr);
+
+            // Safety restriction: cannot delete a subject that has recorded attendance
+            if (subjectDAO.hasAttendance(id)) {
+                request.setAttribute("errorMsg", "Cannot delete subject that has recorded attendance logs.");
+                request.setAttribute("errorMessage", "Cannot delete subject that has recorded attendance logs.");
+                handleList(request, response);
+                return;
+            }
+
+            Result<Boolean> result = ErrorHandler.executeSafely(
+                () -> subjectDAO.deleteSubject(id),
+                "Subject catalog deleted successfully.",
+                "Failed to delete subject."
+            );
+
+            if (result.isSuccess() && result.getData()) {
+                response.sendRedirect(request.getContextPath() + "/admin/subjects?msg=deleted");
+            } else {
+                request.setAttribute("errorMsg", result.getMessage());
+                request.setAttribute("errorMessage", result.getMessage());
+                handleList(request, response);
+            }
+        } catch (NumberFormatException e) {
+            request.setAttribute("errorMsg", "Invalid subject ID identifier.");
+            request.setAttribute("errorMessage", "Invalid subject ID identifier.");
+            handleList(request, response);
+        }
     }
 }

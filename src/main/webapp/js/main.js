@@ -7,6 +7,11 @@
 document.addEventListener("DOMContentLoaded", () => {
     // Automatically boot essential layout listeners
     initSidebarToggle();
+    startSessionTimer();
+    initKeyboardShortcuts();
+    
+    // Apply page transition class
+    document.body.classList.add("page-enter");
 });
 
 /**
@@ -233,3 +238,209 @@ function confirmDelete(event, entityName = "this item") {
     }
     return true;
 }
+
+/**
+ * 6. Phase 6 Additions: Complete form validation library, AJAX helper, session timer & modal
+ */
+function validateRequired(fieldId) {
+    const input = document.getElementById(fieldId);
+    if (!input) return true;
+    const val = input.value.trim();
+    if (val === "") {
+        showFieldError(fieldId, "This field is required.");
+        return false;
+    }
+    clearFieldError(fieldId);
+    return true;
+}
+
+function validateEmail(fieldId) {
+    const input = document.getElementById(fieldId);
+    if (!input) return true;
+    const val = input.value.trim();
+    if (val === "") return true;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(val)) {
+        showFieldError(fieldId, "Please enter a valid email address.");
+        return false;
+    }
+    clearFieldError(fieldId);
+    return true;
+}
+
+function validatePhone(fieldId) {
+    const input = document.getElementById(fieldId);
+    if (!input) return true;
+    const val = input.value.trim();
+    if (val === "") return true;
+    const phoneRegex = /^\+?[0-9\s\-()]{7,15}$/;
+    if (!phoneRegex.test(val)) {
+        showFieldError(fieldId, "Please enter a valid phone number.");
+        return false;
+    }
+    clearFieldError(fieldId);
+    return true;
+}
+
+function validateRollNo(fieldId) {
+    const input = document.getElementById(fieldId);
+    if (!input) return true;
+    const val = input.value.trim();
+    if (val === "") return true;
+    const rollRegex = /^[a-zA-Z0-9]{1,10}$/;
+    if (!rollRegex.test(val)) {
+        showFieldError(fieldId, "Roll number must be alphanumeric and max 10 characters.");
+        return false;
+    }
+    clearFieldError(fieldId);
+    return true;
+}
+
+function validateDate(fieldId) {
+    const input = document.getElementById(fieldId);
+    if (!input) return true;
+    const val = input.value.trim();
+    if (val === "") return true;
+    const selectedDate = new Date(val);
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    if (selectedDate > today) {
+        showFieldError(fieldId, "Date cannot be in the future.");
+        return false;
+    }
+    clearFieldError(fieldId);
+    return true;
+}
+
+function showFieldError(fieldId, message) {
+    const input = document.getElementById(fieldId);
+    if (!input) return;
+    input.classList.add("error");
+    let errSpan = input.parentNode.querySelector(`.error-${fieldId}`);
+    if (!errSpan) {
+        errSpan = document.createElement("span");
+        errSpan.className = `form-error-msg animate-fade error-${fieldId}`;
+        input.parentNode.appendChild(errSpan);
+    }
+    errSpan.innerText = message;
+}
+
+function clearFieldError(fieldId) {
+    const input = document.getElementById(fieldId);
+    if (!input) return;
+    input.classList.remove("error");
+    const errSpan = input.parentNode.querySelector(`.error-${fieldId}`);
+    if (errSpan) {
+        errSpan.remove();
+    }
+}
+
+function ajaxPost(url, data, onSuccess, onError) {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", url, true);
+    xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState === XMLHttpRequest.DONE) {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    if (onSuccess) onSuccess(response);
+                } catch (e) {
+                    if (onSuccess) onSuccess(xhr.responseText);
+                }
+            } else {
+                if (onError) onError(xhr.status, xhr.statusText);
+            }
+        }
+    };
+    let body = "";
+    if (typeof data === "string") {
+        body = data;
+    } else if (typeof data === "object") {
+        body = Object.keys(data)
+            .map(key => encodeURIComponent(key) + "=" + encodeURIComponent(data[key]))
+            .join("&");
+    }
+    xhr.send(body);
+}
+
+let sessionTimeoutTimer;
+function startSessionTimer() {
+    clearTimeout(sessionTimeoutTimer);
+    sessionTimeoutTimer = setTimeout(showSessionWarningModal, 28 * 60 * 1000); // 28 minutes
+}
+
+function showSessionWarningModal() {
+    let modal = document.getElementById("session-warning-modal");
+    if (!modal) {
+        modal = document.createElement("div");
+        modal.id = "session-warning-modal";
+        modal.className = "modal active";
+        modal.style.position = "fixed";
+        modal.style.top = "0";
+        modal.style.left = "0";
+        modal.style.width = "100%";
+        modal.style.height = "100%";
+        modal.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
+        modal.style.display = "flex";
+        modal.style.alignItems = "center";
+        modal.style.justifyContent = "center";
+        modal.style.zIndex = "9999";
+        
+        const contextPath = window.location.pathname.split('/')[1] || "attendance-management-system";
+        
+        modal.innerHTML = `
+            <div class="card page-enter" style="max-width: 400px; width: 90%; background: var(--bg-card); border-radius: var(--border-radius-md); box-shadow: var(--shadow-lg); padding: 24px;">
+                <div class="card-header" style="margin-bottom: 12px;">
+                    <h3 class="card-title" style="color: var(--danger); display: flex; align-items: center; gap: 8px;">
+                        Session Expiring Soon
+                    </h3>
+                </div>
+                <div class="card-body" style="margin-bottom: 20px;">
+                    <p>Your session will expire in 2 minutes due to inactivity. Would you like to remain logged in?</p>
+                </div>
+                <div class="action-buttons-group" style="display: flex; gap: 12px; justify-content: flex-end;">
+                    <button class="btn btn-secondary" onclick="extendSession()">Keep Logged In</button>
+                    <a href="/${contextPath}/logout" class="btn btn-danger">Log Out</a>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+}
+
+function extendSession() {
+    const contextPath = window.location.pathname.split('/')[1] || "attendance-management-system";
+    const xhr = new XMLHttpRequest();
+    xhr.open("GET", "/" + contextPath + "/login.jsp", true);
+    xhr.send();
+    
+    const modal = document.getElementById("session-warning-modal");
+    if (modal) {
+        modal.remove();
+    }
+    startSessionTimer();
+    if (typeof showToast === "function") {
+        showToast("Session extended successfully", "success");
+    }
+}
+window.extendSession = extendSession;
+
+function initKeyboardShortcuts() {
+    document.addEventListener("keydown", (e) => {
+        if (e.ctrlKey && e.key === "f") {
+            const searchInput = document.getElementById("searchInput") || document.querySelector(".search-input");
+            if (searchInput) {
+                e.preventDefault();
+                searchInput.focus();
+            }
+        }
+        if (e.key === "Escape") {
+            const modal = document.getElementById("session-warning-modal");
+            if (modal) {
+                modal.remove();
+            }
+        }
+    });
+}
+
