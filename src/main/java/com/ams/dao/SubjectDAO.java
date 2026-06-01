@@ -87,6 +87,39 @@ public class SubjectDAO {
     }
 
     /**
+     * Retrieves a subject by its unique ID.
+     * 
+     * @param subjectId The unique subject ID.
+     * @return A Subject object or null if not found.
+     */
+    public Subject getSubjectById(int subjectId) {
+        Subject subject = null;
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+
+        try {
+            conn = DBConnection.getInstance().getConnection();
+            String sql = "SELECT * FROM subjects WHERE subject_id = ?";
+            ps = conn.prepareStatement(sql);
+            ps.setInt(1, subjectId);
+            rs = ps.executeQuery();
+
+            if (rs.next()) {
+                subject = extractSubjectFromResultSet(rs);
+            }
+        } catch (SQLException e) {
+            System.err.println("[AMS SubjectDAO] Error in getSubjectById: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            DBConnection.closeResultSet(rs);
+            DBConnection.closeStatement(ps);
+            DBConnection.closeConnection(conn);
+        }
+        return subject;
+    }
+
+    /**
      * Retrieves subjects allocated to a specific class cohort.
      * 
      * SQL Query: SELECT * FROM subjects WHERE class_id = ?

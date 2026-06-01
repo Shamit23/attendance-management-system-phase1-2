@@ -64,6 +64,10 @@
         <servlet-name>ReportServlet</servlet-name>
         <url-pattern>/teacher/reports</url-pattern>
     </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>ReportServlet</servlet-name>
+        <url-pattern>/student/reports</url-pattern>
+    </servlet-mapping>
 
     <servlet>
         <servlet-name>AttendanceServlet</servlet-name>
