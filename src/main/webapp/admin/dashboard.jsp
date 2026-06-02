@@ -11,6 +11,7 @@
 <%@ page import="java.util.List" %>
 <%@ page import="java.util.Map" %>
 <%@ page import="java.util.ArrayList" %>
+<%@ page import="java.util.HashMap" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 <%
     // Verify session credentials using standard server-side scriptlet backup guards
@@ -92,7 +93,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AMS Admin - Dashboard</title>
     <!-- Core UI CSS Stylesheet -->
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/style.css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/style.css?v=1.0.1">
     <!-- Chart.js CDN for modern graphics -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>

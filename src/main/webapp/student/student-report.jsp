@@ -3,6 +3,7 @@
 <%@ page import="java.util.List" %>
 <%@ page import="java.util.Map" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
 <%
     // Verify session credentials using standard server-side guards
     if (session == null || !"STUDENT".equals(session.getAttribute("role"))) {
@@ -156,17 +157,17 @@
                                             <c:choose>
                                                 <c:when test="${sub.percentage >= 75.0}">
                                                     <span class="badge badge-success" style="padding: 4px 10px;">
-                                                        <c:formatNumber value="${sub.percentage}" maxFractionDigits="1" />%
+                                                        <fmt:formatNumber value="${sub.percentage}" maxFractionDigits="1" />%
                                                     </span>
                                                 </c:when>
                                                 <c:when test="${sub.percentage >= 60.0}">
                                                     <span class="badge badge-warning" style="padding: 4px 10px;">
-                                                        <c:formatNumber value="${sub.percentage}" maxFractionDigits="1" />%
+                                                        <fmt:formatNumber value="${sub.percentage}" maxFractionDigits="1" />%
                                                     </span>
                                                 </c:when>
                                                 <c:otherwise>
                                                     <span class="badge badge-danger" style="padding: 4px 10px;">
-                                                        <c:formatNumber value="${sub.percentage}" maxFractionDigits="1" />%
+                                                        <fmt:formatNumber value="${sub.percentage}" maxFractionDigits="1" />%
                                                     </span>
                                                 </c:otherwise>
                                             </c:choose>

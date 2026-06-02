@@ -4,6 +4,7 @@
 <%@ page import="java.util.List" %>
 <%@ page import="java.util.Map" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
 <%
     // Verify session credentials using standard server-side guards
     if (session == null || !"TEACHER".equals(session.getAttribute("role"))) {
@@ -216,12 +217,12 @@
                                                 <c:choose>
                                                     <c:when test="${row.percentage >= 75.0}">
                                                         <span class="badge badge-success" style="font-size: 13px; padding: 4px 12px;">
-                                                            <c:formatNumber value="${row.percentage}" maxFractionDigits="1" />%
+                                                            <fmt:formatNumber value="${row.percentage}" maxFractionDigits="1" />%
                                                         </span>
                                                     </c:when>
                                                     <c:otherwise>
                                                         <span class="badge badge-danger" style="font-size: 13px; padding: 4px 12px;">
-                                                            <c:formatNumber value="${row.percentage}" maxFractionDigits="1" />%
+                                                            <fmt:formatNumber value="${row.percentage}" maxFractionDigits="1" />%
                                                         </span>
                                                     </c:otherwise>
                                                 </c:choose>
