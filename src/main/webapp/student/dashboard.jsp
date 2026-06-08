@@ -293,17 +293,17 @@
                         <div style="font-size: 11px; text-transform: uppercase; color: var(--text-secondary); font-weight: 600;">Total Classes</div>
                         <div class="val"><%= grandTotal %></div>
                     </div>
-                    <div class="mini-card" style="border-bottom: 3px solid var(--success-color);">
-                        <div style="font-size: 11px; text-transform: uppercase; color: var(--success-color); font-weight: 600;">Attended</div>
-                        <div class="val" style="color: var(--success-color);"><%= grandAttended %></div>
+                    <div class="mini-card" style="border-bottom: 3px solid var(--success-color, #27AE60);">
+                        <div style="font-size: 11px; text-transform: uppercase; color: var(--success-color, #27AE60); font-weight: 600;">Attended</div>
+                        <div class="val" style="color: var(--success-color, #27AE60);"><%= grandAttended %></div>
                     </div>
-                    <div class="mini-card" style="border-bottom: 3px solid var(--danger-color);">
-                        <div style="font-size: 11px; text-transform: uppercase; color: var(--danger-color); font-weight: 600;">Absent Sessions</div>
-                        <div class="val" style="color: var(--danger-color);"><%= grandAbsent %></div>
+                    <div class="mini-card" style="border-bottom: 3px solid var(--danger-color, #E74C3C);">
+                        <div style="font-size: 11px; text-transform: uppercase; color: var(--danger-color, #E74C3C); font-weight: 600;">Absent Sessions</div>
+                        <div class="val" style="color: var(--danger-color, #E74C3C);"><%= grandAbsent %></div>
                     </div>
-                    <div class="mini-card" style="border-bottom: 3px solid var(--warning-color);">
-                        <div style="font-size: 11px; text-transform: uppercase; color: var(--warning-color); font-weight: 600;">Late Logins</div>
-                        <div class="val" style="color: var(--warning-color);"><%= grandLate %></div>
+                    <div class="mini-card" style="border-bottom: 3px solid var(--warning-color, #F1C40F);">
+                        <div style="font-size: 11px; text-transform: uppercase; color: var(--warning-color, #F1C40F); font-weight: 600;">Late Logins</div>
+                        <div class="val" style="color: var(--warning-color, #F1C40F);"><%= grandLate %></div>
                     </div>
                 </div>
 
@@ -339,12 +339,12 @@
                         <% } else {
                             for (Map<String, Object> sub : subjectMetrics) {
                                 double p = (Double) sub.get("percentage");
-                                String barColor = "var(--success-color)";
+                                String barColor = "var(--success-color, #27AE60)";
                                 if (p < 75.0) {
-                                    barColor = "var(--warning-color)";
+                                    barColor = "var(--warning-color, #F1C40F)";
                                 }
                                 if (p < 60.0) {
-                                    barColor = "var(--danger-color)";
+                                    barColor = "var(--danger-color, #E74C3C)";
                                 }
                         %>
                             <div class="subject-progress-row">

@@ -264,20 +264,41 @@
             font-size: 13px;
             color: var(--text-primary);
         }
-        .calendar-dot-indicators {
-            display: flex;
-            gap: 4px;
+        .calendar-day-cell.status-present {
+            background-color: var(--success-light, rgba(39, 174, 96, 0.12));
+            border-color: rgba(39, 174, 96, 0.3);
+        }
+        .calendar-day-cell.status-present .day-num {
+            color: var(--success, #27AE60) !important;
+        }
+
+        .calendar-day-cell.status-absent {
+            background-color: var(--danger-light, rgba(231, 76, 60, 0.12));
+            border-color: rgba(231, 76, 60, 0.3);
+        }
+        .calendar-day-cell.status-absent .day-num {
+            color: var(--danger, #E74C3C) !important;
+        }
+
+        .calendar-day-cell.status-late {
+            background-color: var(--warning-light, rgba(241, 196, 15, 0.12));
+            border-color: rgba(241, 196, 15, 0.3);
+        }
+        .calendar-day-cell.status-late .day-num {
+            color: var(--warning, #F1C40F) !important;
+        }
+
+        .status-label {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
             margin-top: auto;
-            align-self: center;
+            align-self: flex-start;
         }
-        .indicator-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-        }
-        .indicator-dot.present { background-color: var(--success-color); }
-        .indicator-dot.absent { background-color: var(--danger-color); }
-        .indicator-dot.late { background-color: var(--warning-color); }
+        .status-label.present { color: var(--success, #27AE60); }
+        .status-label.absent { color: var(--danger, #E74C3C); }
+        .status-label.late { color: var(--warning, #F1C40F); }
 
         /* Filter layout card */
         .filter-panel {
@@ -371,12 +392,12 @@
                                     }
                                 }
                         %>
-                            <div class="calendar-day-cell">
+                            <div class="calendar-day-cell <%= (dayDotColor != null) ? "status-" + dayDotColor : "" %>">
                                 <span class="day-num"><%= day %></span>
                                 <% if (dayDotColor != null) { %>
-                                    <div class="calendar-dot-indicators">
-                                        <div class="indicator-dot <%= dayDotColor %>" title="<%= dayDotColor.substring(0, 1).toUpperCase() + dayDotColor.substring(1) %> status today"></div>
-                                    </div>
+                                    <span class="status-label <%= dayDotColor %>" title="<%= dayDotColor.substring(0, 1).toUpperCase() + dayDotColor.substring(1) %> status today">
+                                        <%= dayDotColor %>
+                                    </span>
                                 <% } %>
                             </div>
                         <% } %>

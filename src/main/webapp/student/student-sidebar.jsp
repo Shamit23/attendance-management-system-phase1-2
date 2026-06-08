@@ -2,14 +2,14 @@
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 <%
     // Detect active tab from request URI and parameters
-    String currentURI = request.getRequestURI();
-    String activeTab = "dashboard";
-    if (currentURI.contains("view-attendance.jsp")) {
+    String sidebarCurrentURI = request.getRequestURI();
+    String sidebarActiveTab = "dashboard";
+    if (sidebarCurrentURI.contains("view-attendance.jsp")) {
         String tabParam = request.getParameter("tab");
         if ("subject".equals(tabParam)) {
-            activeTab = "subject";
+            sidebarActiveTab = "subject";
         } else {
-            activeTab = "myattendance";
+            sidebarActiveTab = "myattendance";
         }
     }
 %>
@@ -62,19 +62,19 @@
     <nav class="sidebar-nav">
         <ul>
             <li>
-                <a href="${pageContext.request.contextPath}/student/dashboard.jsp" class="<%= "dashboard".equals(activeTab) ? "active" : "" %>">
+                <a href="${pageContext.request.contextPath}/student/dashboard.jsp" class="<%= "dashboard".equals(sidebarActiveTab) ? "active" : "" %>">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
                     <span>Dashboard</span>
                 </a>
             </li>
             <li>
-                <a href="${pageContext.request.contextPath}/student/view-attendance.jsp?tab=date" class="<%= "myattendance".equals(activeTab) ? "active" : "" %>">
+                <a href="${pageContext.request.contextPath}/student/view-attendance.jsp?tab=date" class="<%= "myattendance".equals(sidebarActiveTab) ? "active" : "" %>">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                     <span>My Attendance</span>
                 </a>
             </li>
             <li>
-                <a href="${pageContext.request.contextPath}/student/view-attendance.jsp?tab=subject" class="<%= "subject".equals(activeTab) ? "active" : "" %>">
+                <a href="${pageContext.request.contextPath}/student/view-attendance.jsp?tab=subject" class="<%= "subject".equals(sidebarActiveTab) ? "active" : "" %>">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
                     <span>Attendance by Subject</span>
                 </a>

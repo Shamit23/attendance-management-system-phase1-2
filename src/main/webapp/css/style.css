@@ -15,10 +15,13 @@
     --accent-hover: #2980B9;
     --accent-light: rgba(52, 152, 219, 0.1);
     --success: #27AE60;
+    --success-color: var(--success);
     --success-light: rgba(39, 174, 96, 0.12);
     --danger: #E74C3C;
+    --danger-color: var(--danger);
     --danger-light: rgba(231, 76, 60, 0.12);
     --warning: #F1C40F;
+    --warning-color: var(--warning);
     --warning-light: rgba(241, 196, 15, 0.12);
     
     /* Neutral Color Palette */
